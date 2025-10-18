@@ -1,0 +1,20 @@
+<launch>
+
+  <node
+    pkg="tf"
+    type="static_transform_publisher"
+    name="base_to_laser_broadcaster"
+    args="0.11 0 0.21 0 0 0 base_link base_laser 100" />
+
+  <node name="RosAria" pkg="rosaria" type="RosAria">
+    <param name="port" value="/dev/ttyS0"/>
+    <param name="baud" value="9600"/>
+  </node>
+
+  <node name="laser" pkg="sicktoolbox_wrapper" type="sicklms">
+    <param name="port" value="/dev/ttyS1"/>
+  </node>
+
+  <node name="navegacao" pkg="rota_fuga" type="navegacao_ativa.py" output = "screen"/>
+
+</launch>
