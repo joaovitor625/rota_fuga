@@ -27,7 +27,9 @@ cd ~/catkin_ws
 catkin_make rota_fuga
 ```
 Para rodar o programa, você tem duas opções rodar cada nó indiviualmente
+```bash 
 rosrun rota_fuga navega_ativa.py
+```
 ou rodar o arquivo de launch
 ```bash
 roslaunch rota_fuga navegacao.launch
