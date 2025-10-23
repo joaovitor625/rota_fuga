@@ -1,57 +1,160 @@
-## Resumo do Pacote
- Este trabalho prático visa aplicar os conceitos fundamentais de ROS em um cenário real, utilizando o robô Pioneer 3DX e seu sensor LIDAR. O foco do projeto é ir além da simples detecção de obstáculos, implementando uma lógica de controle que permita ao robô tomar uma decisão informada sobre qual o melhor caminho a seguir quando sua rota atual está bloqueada.
+# Rota Fuga — Navegação Reativa para Pioneer 3DX
 
-Objetivo Principal: Desenvolver um sistema em ROS onde o robô navega de forma autônoma, e ao encontrar um obstáculo, ele para, analisa todo o seu entorno com o sensor laser para identificar a rota de fuga mais promissora (o caminho mais livre) e, então, executa a manobra para seguir por essa nova rota.
+Resumo
+------
+Este pacote implementa um comportamento reativo em ROS para o robô Pioneer 3DX equipado com sensor LIDAR. O objetivo é navegar autonomamente em frente e, ao encontrar um obstáculo, determinar a melhor rota de fuga (o setor com mais espaço livre) a partir de uma varredura do laser, alinhar-se com essa direção e seguir adiante. Em caso de risco iminente (obstáculo muito próximo), o robô executa uma marcha-a-ré curta antes de analisar o entorno.
 
-## Descrição do Pacote
-  1. O sistema completo deve ser iniciado com um único comando roslaunch.
+Principais características
+-------------------------
+- Nó ROS em Python que implementa uma máquina de estados reativa.
+- Controle de movimentos via Twist publicado em /RosAria/cmd_vel.
+- Leitura de LIDAR em /scan (sensor_msgs/LaserScan) e odometria em /RosAria/pose (nav_msgs/Odometry).
+- Estados:
+  - AVANCANDO — deslocamento para frente.
+  - MAPEANDO_AMBIENTE — gira para analisar 360º e identificar a melhor rota.
+  - ALINHANDO_ROTA — gira até alinhar com o ângulo escolhido.
+  - RECUPERANDO — marcha-a-ré quando um obstáculo crítico é detectado.
+- Seleção da melhor rota por suavização (convolução) das leituras LIDAR e escolha do segmento com maior espaço livre.
 
-  2. Inicialmente, o robô deve mover-se para frente com velocidade constante.
+Arquivos principais
+-------------------
+- src/navegacao_ativa.py — nó principal (nome do nó: `reactive_navigator_v3`).
+- launch/navegacao.launch — (opcional) arquivo de lançamento para iniciar o sistema completo com um comando roslaunch. (Verifique se existe no repositório; caso não exista, ver as instruções abaixo para executar o nó manualmente.)
 
-  3. O robô deve monitorar continuamente os obstáculos em um cone frontal.
+Requisitos
+----------
+- ROS (ex.: Noetic, Melodic — ajuste conforme sua distro).
+- Python 2.7/3.x compatível com a versão do ROS em uso.
+- Pacotes ROS: rospy, sensor_msgs, geometry_msgs, nav_msgs, tf.
+- Biblioteca Python: numpy.
 
-  4. SE um obstáculo for detectado dentro deste cone a uma distância menor que um limiar de alerta (ex: 1.2 metros), o robô deve: a. Parar completamente. b. Iniciar um estado de "Análise", no qual ele processa os dados de uma varredura completa (360º) do laser. c. Na análise, o nó deve encontrar o ângulo que corresponde à maior distância livre (a melhor rota de fuga). d. Uma vez identificado o melhor ângulo, o robô entra no estado "Girando" e rotaciona sobre seu eixo até estar alinhado com essa nova direção. e. Após o alinhamento, ele retorna ao estado de "mover-se para frente".
-
-  5. Mecanismo de Segurança: SE um obstáculo for detectado dentro de um limiar crítico (ex: 0.4 metros, uma distância muito perigosa), o robô deve primeiro executar uma manobra de marcha a ré por uma curta distância fixa (ex: recuar 20 cm) antes de iniciar o procedimento de Análise e Rotação descrito acima.
-
-## Como rodar esse pacote
-
-entre na pasta src do catkin_ws, com o seguinte comando
+Instalação
+----------
+1. Entre na pasta src do seu workspace catkin:
 ```bash
 cd ~/catkin_ws/src
 ```
-Dentro dessa pasta rode os seguintes comandos:
+
+2. Clone o repositório:
 ```bash
 git clone https://github.com/joaovitor625/rota_fuga.git
+```
+
+3. Volte para a raiz do workspace e compile:
+```bash
 cd ~/catkin_ws
-catkin_make rota_fuga
+catkin_make
+source devel/setup.bash
 ```
-Para rodar o programa, você tem duas opções rodar cada nó indiviualmente
-```bash 
-rosrun rota_fuga navega_ativa.py
-```
-ou rodar o arquivo de launch
+
+Observação: o `catkin_make` geralmente compila todo o workspace; não há necessidade de passar o nome do package para o catkin_make.
+
+Execução
+--------
+Opção A — usar roslaunch (recomendado se houver arquivo de launch):
 ```bash
 roslaunch rota_fuga navegacao.launch
 ```
 
-## Quem criou esse pacote?
-Esse pacote foi criado pelos seguintes alunos da disciplina de robotica avançada da UNIFEI
+Opção B — executar o nó diretamente:
+1. Torne o script executável (se necessário):
+```bash
+chmod +x ~/catkin_ws/src/rota_fuga/src/navegacao_ativa.py
+```
+2. Execute com rosrun:
+```bash
+rosrun rota_fuga navegacao_ativa.py
+```
 
-Henrique Xavier Vincetini 
+Tópicos usados
+--------------
+- Subscriber: `/scan` (sensor_msgs/LaserScan)
+- Subscriber: `/RosAria/pose` (nav_msgs/Odometry)
+- Publisher: `/RosAria/cmd_vel` (geometry_msgs/Twist)
 
-João Vitor Barbosa Pinheiro
+Parâmetros e constantes (valores padrão no código)
+--------------------------------------------------
+Os valores abaixo estão definidos diretamente em src/navegacao_ativa.py. Recomenda-se expô-los via rosparam para facilitar ajustes.
+- Velocidades:
+  - forward_speed: 0.2 m/s
+  - rotation_speed: 0.5 rad/s
+  - mapping_rotation_speed: 0.3 rad/s
+  - backward_speed: 0.15 m/s
+- Distâncias/limiares:
+  - alert_distance: 0.7 m (inicia mapeamento)
+  - critical_distance: 0.4 m (inicia recuperação/marcha-a-ré)
+  - recovery_distance: 0.2 m (distância a recuar)
+- Outros:
+  - frontal_cone_angle: 50° (ângulo do cone frontal)
+  - rotation_tolerance: 5° (tolerância ao alinhar)
 
-Julia Da Cruz Viana
+Algoritmo (visão geral)
+-----------------------
+1. Enquanto em AVANCANDO, o nó verifica a menor distância dentro de um cone frontal.  
+   - Se distância <= critical_distance: muda para RECUPERANDO (marcha-a-ré por recovery_distance).  
+   - Se critical_distance < distância <= alert_distance: para e entra em MAPEANDO_AMBIENTE.  
+   - Caso contrário: avança em frente.
 
-| Alunos  | 
-| -------- |
-| Henrique Xavier Vincetini |
-|João Vitor Barbosa Pinheiro |
-| Julia Da Cruz Viana |
+2. Em RECUPERANDO, usa odometria para medir o deslocamento durante a marcha-a-ré; quando atingir recovery_distance, para e passa para MAPEANDO_AMBIENTE.
 
+3. Em MAPEANDO_AMBIENTE, gira no próprio eixo enquanto coleta leituras LIDAR, aplica suavização por janela e registra o ângulo com maior espaço livre. Depois de completar uma varredura (lógica baseada em diferença de yaw), seleciona o melhor ângulo e passa para ALINHANDO_ROTA.
 
-Professor Responsável pela disciplina:
-|Professor|
-|--------|
-|Guilherme de Souza Bastos|
+4. Em ALINHANDO_ROTA, gira até que a diferença entre yaw atual e yaw alvo esteja dentro da rotation_tolerance; então retorna ao estado AVANCANDO.
+
+Problemas conhecidos e recomendações
+-----------------------------------
+- check_frontal_obstacle() usa índices derivados de divisões sem conversão para inteiros, o que pode causar exceções ao fatiar a lista de ranges. Recomenda-se converter índices para int().
+- O código substitui valores inf e NaN por 0 nas leituras do LIDAR. Isso pode fazer com que áreas amplas sejam interpretadas como 0 m. Alternativa melhor: substituir inf por um valor alto (ex.: alcance máximo do sensor) e descartar 0s que representem leituras inválidas.
+- Parâmetros estão hard-coded; mover para rosparams/arquivo de configuração facilita testes e ajustes em diferentes robôs/ambientes.
+- O comportamento é reativo e local (não há mapa global ou planejamento de alto nível). Em ambientes complexos, o robô pode entrar em ciclos de repetição. Considere adicionar lógica de escape ou integração com um planner global.
+- Verifique se os tópicos (nomes e tipos) batem com sua plataforma/simulação (ex.: alguns simuladores usam /odom em vez de /RosAria/pose).
+
+Sugestões de melhorias
+----------------------
+- Corrigir o slicing por índices inteiros e o tratamento de inf/nan.
+- Expor parâmetros via rosparam com arquivo de launch.
+- Adicionar um arquivo launch que configure parâmetros e remapeie tópicos conforme necessário.
+- Registrar métricas/diagnósticos (rosout/diagnostic_msgs) para facilitar debugging.
+- Criar testes em simulação (ex.: Stage, Gazebo) para validar comportamento em diferentes cenários.
+- Incluir um arquivo LICENSE (ex.: MIT) se quiser permitir contribuições externas.
+
+Contribuidores
+--------------
+- Henrique Xavier Vincetini
+- João Vitor Barbosa Pinheiro
+- Julia Da Cruz Viana
+
+Professor responsável
+---------------------
+- Guilherme de Souza Bastos
+
+Licença
+-------
+Adicione um arquivo LICENSE ao repositório com a licença desejada (recomendado: MIT ou Apache-2.0). Atualmente não há licença explícita.
+
+Contato
+-------
+ 
+contato principal: @joaovitor625
+
+Exemplos rápidos de uso
+-----------------------
+Executar o nó diretamente:
+```bash
+# torne o script executável (uma vez)
+chmod +x ~/catkin_ws/src/rota_fuga/src/navegacao_ativa.py
+
+# executar com rosrun
+rosrun rota_fuga navegacao_ativa.py
+```
+
+Executar via launch (se disponível):
+```bash
+roslaunch rota_fuga navegacao.launch
+```
+
+---
+
+Obrigado — este README foi atualizado para ficar mais claro, organizado e pronto para publicação no GitHub. Se desejar, posso:
+- gerar o arquivo README.md e abrir um PR no seu repositório com estas alterações,
+- ou criar um launch e um arquivo de parâmetros (rosparams) e propor correções de bugs citados no código. Escolha qual tarefa você prefere que eu faça em seguida.
