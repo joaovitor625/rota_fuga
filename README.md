@@ -109,15 +109,6 @@ Problemas conhecidos e recomendações
 - O comportamento é reativo e local (não há mapa global ou planejamento de alto nível). Em ambientes complexos, o robô pode entrar em ciclos de repetição. Considere adicionar lógica de escape ou integração com um planner global.
 - Verifique se os tópicos (nomes e tipos) batem com sua plataforma/simulação (ex.: alguns simuladores usam /odom em vez de /RosAria/pose).
 
-Sugestões de melhorias
-----------------------
-- Corrigir o slicing por índices inteiros e o tratamento de inf/nan.
-- Expor parâmetros via rosparam com arquivo de launch.
-- Adicionar um arquivo launch que configure parâmetros e remapeie tópicos conforme necessário.
-- Registrar métricas/diagnósticos (rosout/diagnostic_msgs) para facilitar debugging.
-- Criar testes em simulação (ex.: Stage, Gazebo) para validar comportamento em diferentes cenários.
-- Incluir um arquivo LICENSE (ex.: MIT) se quiser permitir contribuições externas.
-
 Contribuidores
 --------------
 - Henrique Xavier Vincetini
@@ -127,15 +118,6 @@ Contribuidores
 Professor responsável
 ---------------------
 - Guilherme de Souza Bastos
-
-Licença
--------
-Adicione um arquivo LICENSE ao repositório com a licença desejada (recomendado: MIT ou Apache-2.0). Atualmente não há licença explícita.
-
-Contato
--------
- 
-contato principal: @joaovitor625
 
 Exemplos rápidos de uso
 -----------------------
@@ -152,9 +134,3 @@ Executar via launch (se disponível):
 ```bash
 roslaunch rota_fuga navegacao.launch
 ```
-
----
-
-Obrigado — este README foi atualizado para ficar mais claro, organizado e pronto para publicação no GitHub. Se desejar, posso:
-- gerar o arquivo README.md e abrir um PR no seu repositório com estas alterações,
-- ou criar um launch e um arquivo de parâmetros (rosparams) e propor correções de bugs citados no código. Escolha qual tarefa você prefere que eu faça em seguida.
